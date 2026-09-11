@@ -1,0 +1,41 @@
+name: OMEGA H0
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [omega-h0]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: omega-h0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify one-liner size and syntax
+        run: |
+          bytes=$(wc -c < OMEGA_H0.sh)
+          echo "OMEGA_H0.sh bytes=$bytes"
+          test "$bytes" -lt 2048
+          bash -n OMEGA_H0.sh
+          chmod +x OMEGA_H0.sh
+      - name: Verify finite H0 invariants
+        run: |
+          ./OMEGA_H0.sh 8 1
+          ./OMEGA_H0.sh 2 9086
+          ./OMEGA_H0.sh 2 1000000000000000000
+      - name: Verify live public corpus
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./OMEGA_H0.sh live letsgo0226
